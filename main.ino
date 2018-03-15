@@ -3,7 +3,7 @@
 
  * Soft transluscent rubber raindrop with embedded electronics.
  * 
- * H2Go is fully portable and reminds users to drink 8 glasses of
+ * H2Go is a portable device that reminds users to drink 8 glasses of
  * water a day.
  * 
  * LED brightness changes from dim to fully bright
