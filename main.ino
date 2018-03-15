@@ -3,7 +3,7 @@
 
  * Soft transluscent rubber raindrop with embedded electronics.
  * 
- * H2Go is a portable device that reminds users to drink 8 glasses of
+ * H2Go is fully portable and reminds users to drink 8 glasses of
  * water a day.
  * 
  * LED brightness changes from dim to fully bright
@@ -27,6 +27,9 @@
 
 CRGB leds[NUM_LEDS];
 
+unsigned long startTime;
+unsigned long endTime;
+
 int brightness = 0;
 
 // The number of Steps between the output being on and off
@@ -43,86 +46,85 @@ void setup() {
   pinMode(DATA_PIN, OUTPUT);
 
   // calculate the R variable (only needs to be done once at setup)
-  R = (pwmIntervals * log10(5))/(log10(255)); // increase numerator for smoother fade
+  R = (pwmIntervals * log10(10))/(log10(255)); // increase numerator for smoother fade
 }
 
 void loop() { 
   pulse();
 }
 
-void dim(int brightness) {
+void set(int brightness) {
   for(int dot = 0; dot < NUM_LEDS; dot++) { 
     leds[dot].setHSV(0,0,brightness); // hue, sat, val or "brightness"
-    FastLED.show();
+  }
+  FastLED.show(); // update only once after entire array is set
+}
+
+//void chase() {
+//  for(int dot = 0; dot < NUM_LEDS; dot++) { 
+//    leds[dot] = CRGB::White;
+//    FastLED.show();
+//    // clear this led for the next time around the loop
+//    leds[dot] = CRGB::Black;
 //    delay(30);
-  }
+//  }
+//}
+//
+//void on() {
+//   for (int dot = 0; dot < NUM_LEDS; dot++) {
+//     leds[dot] = CRGB::White; 
+//     FastLED.show(); 
+//     delay(30);   
+//  }
+//}
+
+void updateBrightness(int interval) {
+    // calculate the required PWM value for this interval step
+    brightness = pow(10, (interval / R)) - 1; // power input should match numerator above
+
+    // set the LED ring output to the calculated brightness
+    set(brightness);
+
+    // print the loop iteration and brightness levels
+    Serial.println(brightness);
+
+    // delay for 10 ms between each loop
+    delay(10);
 }
 
-void chase() {
-  for(int dot = 0; dot < NUM_LEDS; dot++) { 
-    leds[dot] = CRGB::White;
-    FastLED.show();
-    // clear this led for the next time around the loop
-    leds[dot] = CRGB::Black;
-    delay(30);
-  }
-}
-
-void on() {
-   for (int dot = 0; dot < NUM_LEDS; dot++) {
-     leds[dot] = CRGB::White; 
-     FastLED.show(); 
-     delay(30);   
-  }
-}
-
-void printStats(int interval, int brightness) {
-    Serial.print("INTERVAL :");
-    Serial.print("\t");
-    Serial.print(interval);
-    Serial.println("");
-    
-    Serial.print("BRIGHTNESS: ");
-    Serial.print("\t");
-    Serial.print(brightness);
-    Serial.println("");
-}
-
-void brightenLED() {
-  // LED brightness increasing
+void brighten() {
+  // LED ring brightness increasing
   Serial.println("RAMPING UP......");
 
   // loop through from 0 to 100, counting up
   for (int interval = 0; interval <= pwmIntervals; interval++) {
-    setLED(interval);
+    updateBrightness(interval);
   }
 }
 
-void dimLED() {
-  // LED brightness decreasing
+void dim() {
+  // LED ring brightness decreasing
   Serial.println("WINDING DOWN......");
 
   // loop through from 100 to 0, counting down
   for (int interval = 100; interval >= 0; interval--) {
-    setLED(interval);
+    updateBrightness(interval);
   }
 }
 
-void setLED(int interval) {
-    // calculate the required PWM value for this interval step
-    brightness = pow(5, (interval / R)) - 1; // was 2 instead of 5
-
-    // set the LED ring output to the calculated brightness
-    dim(brightness);
-
-    // print the loop iteration and brightness levels
-    printStats(interval, brightness);
-
-    // delay for 40 ms between each loop
-//    delay(40);
-}
-
 void pulse() {
-  brightenLED();
-  dimLED();
+  startTime = micros();
+  
+  brighten();
+  dim();
+
+  endTime = micros();
+  unsigned long difference = endTime - startTime;
+  Serial.print("startTime is: ");
+  Serial.println(startTime);
+  Serial.print("endTime is: ");
+  Serial.println(endTime);
+  Serial.print("PULSE FUNCTION EXECUTION TIME: ");
+  Serial.print(difference / 1000); // converting microseconds to milliseconds
+  Serial.println(" ms");
 }
