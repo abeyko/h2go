@@ -2,13 +2,13 @@
 #include <FastLED.h>
 
 // define constants
-#define NUM_LEDS 60 // CHANGE THIS?
+#define NUM_LEDS 12
 #define DATA_PIN 6
 #define BUTTON_PIN 2
 #define PWM_INTERVALS 100
-#define LED_UPDATE_INTERVAL 2000 // INSTEAD OF 20 
-#define BUTTON_INTERVAL 100 // INSTEAD OF 100
-#define ANIMATION_UPDATE_INTERVAL 1000 // INSTEAD OF 10
+#define LED_UPDATE_INTERVAL 2000 
+#define BUTTON_INTERVAL 100
+#define ANIMATION_UPDATE_INTERVAL 1000
 
 CRGB leds[NUM_LEDS];
 
@@ -36,12 +36,8 @@ void setup() {
 }
 
 void loop() {
-  unsigned long currentMillis1 = millis();
-  int millisElapsed1 = currentMillis1 - ledUpdateInterval_previous;
-
   if (millis() - animationUpdateInterval_previous >= ANIMATION_UPDATE_INTERVAL) {
     pulse();
-//    animate_leds();
     animationUpdateInterval_previous = millis();
   }
 
@@ -60,6 +56,7 @@ void loop() {
 
     buttonInterval_previous = millis();
   }
+  
 }
 
 void set(int brightness) {
@@ -85,7 +82,7 @@ void updateBrightness(int interval) {
   set(brightness);
 
 //  Serial.println(brightness);
-  delay(5); // WAS 10
+  delay(5);
 }
 
 void brighten() {
@@ -105,20 +102,4 @@ void dim() {
 void pulse() {
   brighten();
   dim();
-}
-
-void animate_leds() {
-  for(int dot = 0; dot < NUM_LEDS; dot++) { 
-    if (dot <= animation_frame)  {
-      leds[dot] = CRGB::Blue;
-    }
-    else {
-      leds[dot] = CRGB::Black;
-    }
-  }
-
-  animation_frame++;
-  if (animation_frame > NUM_LEDS) {
-    animation_frame=0;
-  }
 }
