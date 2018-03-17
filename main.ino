@@ -1,24 +1,41 @@
+/*
+ * H2Go 
+
+ * Soft transluscent rubber raindrop with embedded electronics.
+ * 
+ * H2Go is fully portable and reminds users to drink 8 glasses of
+ * water a day.
+ * 
+ * LED brightness changes from dim to fully bright
+ * and then reverses from fully bright to dim. Does repeatedly until
+ * user presses down on raindrop to indicate they have drank a 
+ * glass of water. 
+ * 
+ * Created by Angeliki Beyko on March 08, 2018
+ * 
+ * Sources used: 
+ * http://diarmuid.ie/blog/pwm-exponential-led-fading-on-arduino-or-other-platforms/
+ * https://github.com/FastLED/FastLED/wiki/Basic-usage
+ * https://github.com/FastLED/FastLED/wiki/Pixel-reference
+ * https://www.rapidtables.com/convert/color/rgb-to-hsv.html
+ * 
+ */
+
 // import library
 #include <FastLED.h>
 
 // define constants
 #define NUM_LEDS 12
 #define DATA_PIN 6
-#define BUTTON_PIN 2
+#define INTERRUPT_PIN 2
 #define PWM_INTERVALS 100
-#define LED_UPDATE_INTERVAL 2000 
-#define BUTTON_INTERVAL 100
-#define ANIMATION_UPDATE_INTERVAL 1000
 
 CRGB leds[NUM_LEDS];
 
-int animation_frame = 0;
 int brightness = 0;
 int base = 10;
 
-unsigned long ledUpdateInterval_previous = 0; 
-unsigned long buttonInterval_previous = 0; 
-unsigned long animationUpdateInterval_previous = 0;
+volatile byte buttonState = 0;
 
 // The R value in the graph equation
 float R;
@@ -29,49 +46,32 @@ void setup() {
   // calculate the R variable (only needs to be done once at setup)
   R = (PWM_INTERVALS * log10(base))/(log10(255));
   
-  pinMode(BUTTON_PIN, INPUT);
+  pinMode(INTERRUPT_PIN, INPUT);
 
   FastLED.addLeds<NEOPIXEL, DATA_PIN>(leds, NUM_LEDS);
   pinMode(DATA_PIN, OUTPUT);
+
+  attachInterrupt(digitalPinToInterrupt(INTERRUPT_PIN), blink, CHANGE);
 }
 
 void loop() {
-  if (millis() - animationUpdateInterval_previous >= ANIMATION_UPDATE_INTERVAL) {
-    pulse();
-    animationUpdateInterval_previous = millis();
-  }
+  pulse(); 
+}
 
-  if (millis() - ledUpdateInterval_previous >= LED_UPDATE_INTERVAL) {
-    
-    FastLED.show();
-    ledUpdateInterval_previous = millis();
-  }
-
-  if (millis() - buttonInterval_previous >= BUTTON_INTERVAL) {
-
-    int buttonState = digitalRead(BUTTON_PIN);
-    
-    Serial.print("button state is: ");
-    Serial.println(buttonState);
-
-    buttonInterval_previous = millis();
-  }
-  
+void blink() {
+  buttonState = !buttonState;
 }
 
 void set(int brightness) {
-  for(int dot = 0; dot < NUM_LEDS; dot++) {
-    if (dot <= animation_frame)  {
-      leds[dot].setHSV(0,0,brightness);
+  for(int dot = 0; dot < NUM_LEDS; dot++) { 
+    leds[dot].setHSV(0,0,brightness); // hue, sat, val or "brightness"
+    if (buttonState == 1) {
+      Serial.println("state has changed!");
+      buttonPressed();
     }
+    buttonState = 0;
   }
-
-  animation_frame++;
-  if (animation_frame > NUM_LEDS) {
-    animation_frame=0;
-  }
-
-  FastLED.show();
+  FastLED.show(); // update only once after entire array is set
 }
 
 void updateBrightness(int interval) {
@@ -82,7 +82,7 @@ void updateBrightness(int interval) {
   set(brightness);
 
 //  Serial.println(brightness);
-  delay(5);
+  delay(10);
 }
 
 void brighten() {
