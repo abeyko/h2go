@@ -32,8 +32,11 @@
 
 CRGB leds[NUM_LEDS];
 
+int glassesCounter = 0;
 int brightness = 0;
 int base = 10;
+
+bool fullyHydrated = false;
 
 volatile byte buttonState = 0;
 
@@ -55,11 +58,36 @@ void setup() {
 }
 
 void loop() {
-  pulse(); 
+  if (fullyHydrated == false) {
+    pulse();
+  }   
 }
 
 void blink() {
   buttonState = !buttonState;
+}
+
+void buttonPressed() {
+  Serial.println("glasses counter is: ");
+  Serial.println(glassesCounter);
+  if (glassesCounter == 8) {
+    fullyHydrated = true;
+  }
+  if (fullyHydrated == true) {
+    Serial.println("Fully hydrated!!!");
+    set(0);
+    glassesCounter = 0;
+  } else {
+    Serial.println("NOT yet fully hydrated!!!");
+    for (int i = 0; i < 12; i++) {
+      leds[i] = CRGB::Black;
+    }
+    for (int glasses = 0; glasses < glassesCounter; glasses++) {
+      leds[glasses] = CRGB::White;
+    }
+    FastLED.show();
+    delay(3000); // change to 3600000 ms (equal to 1 hr)
+  }
 }
 
 void set(int brightness) {
@@ -67,6 +95,7 @@ void set(int brightness) {
     leds[dot].setHSV(0,0,brightness); // hue, sat, val or "brightness"
     if (buttonState == 1) {
       Serial.println("state has changed!");
+      glassesCounter++;
       buttonPressed();
     }
     buttonState = 0;
@@ -81,19 +110,16 @@ void updateBrightness(int interval) {
   // set the LED ring output to the calculated brightness
   set(brightness);
 
-//  Serial.println(brightness);
   delay(10);
 }
 
 void brighten() {
-//  Serial.println("RAMPING UP......");
   for (int interval = 0; interval <= PWM_INTERVALS; interval++) {
     updateBrightness(interval);
   }
 }
 
 void dim() {
-//  Serial.println("WINDING DOWN......");
   for (int interval = 100; interval >= 0; interval--) {
     updateBrightness(interval);
   }
