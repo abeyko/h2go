@@ -36,8 +36,15 @@ int glassesCounter = 0;
 int brightness = 0;
 int base = 10;
 
-bool fullyHydrated = false;
+int color = 0;
+int randomDot = 0;
+int previousDot = 0;
+int randomBrightness = 0;
 
+bool fullyHydrated = false;
+bool reminderComplete = false;
+
+volatile byte previousButtonState = 0;
 volatile byte buttonState = 0;
 
 // The R value in the graph equation
@@ -67,16 +74,52 @@ void blink() {
   buttonState = !buttonState;
 }
 
+void twinkle() {
+  delay(1000);
+  Serial.print("reminder complete is: ");
+  Serial.println(reminderComplete);
+  buttonState = 0;
+  previousButtonState = buttonState;
+  while (reminderComplete == false) {
+    for (int dot = 0; dot < NUM_LEDS; dot++) {
+      randomDot = random(0,13);
+      randomBrightness = random(0,256);
+      color = random(0,3);
+      if (randomDot != previousDot) {
+        switch (color) {
+          case 0:
+            leds[dot].setHSV(91,20,randomBrightness);
+            break;
+          case 1:
+            leds[dot].setHSV(232,81,randomBrightness);
+            break;
+          case 2:
+            leds[dot].setHSV(180,73,randomBrightness);
+            break;
+        }
+        if (previousButtonState == 0 && buttonState == 1) {
+          Serial.println("button was pressed!!!!!"); 
+          reminderComplete = true;  
+        }
+      }
+      randomDot = previousDot;
+    }
+    FastLED.show();
+    Serial.print("reminder complete: ");
+    Serial.println(reminderComplete);
+    delay(100);
+  }
+}
+
 void buttonPressed() {
   Serial.println("glasses counter is: ");
   Serial.println(glassesCounter);
-  if (glassesCounter == 8) {
+  if (glassesCounter == 3) { // changed from 8
     fullyHydrated = true;
   }
   if (fullyHydrated == true) {
     Serial.println("Fully hydrated!!!");
-    set(0);
-    glassesCounter = 0;
+    twinkle();
   } else {
     Serial.println("NOT yet fully hydrated!!!");
     for (int i = 0; i < 12; i++) {
